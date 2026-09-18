@@ -1,0 +1,4574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>OceanTraceAI | Maritime Oil Spill Intelligence</title>
+
+    <!-- Leaflet -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: #020b14;
+            color: #e8f7ff;
+            font-family: Arial, Helvetica, sans-serif;
+            overflow-x: hidden;
+        }
+
+        :root {
+            --bg: #020b14;
+            --panel: #071522;
+            --panel2: #081b2b;
+            --border: #123952;
+            --cyan: #18c8ff;
+            --cyan2: #00aeea;
+            --green: #22e6a7;
+            --orange: #ffad42;
+            --red: #ff5964;
+            --blue: #42b8ff;
+            --muted: #7392a8;
+            --text: #e8f7ff;
+        }
+
+        /* =========================
+           SCROLLBAR
+        ========================= */
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #020b14;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #123952;
+            border-radius: 10px;
+        }
+
+        /* =========================
+           SIDEBAR
+        ========================= */
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 230px;
+            background: #030c16;
+            border-right: 1px solid #123047;
+            z-index: 1000;
+            padding: 25px 16px;
+        }
+
+        .brand {
+            margin-bottom: 42px;
+        }
+
+        .brand-logo {
+            width: 43px;
+            height: 43px;
+            border: 1px solid var(--cyan);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cyan);
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            box-shadow: 0 0 18px rgba(24, 200, 255, .12);
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: .3px;
+        }
+
+        .brand-sub {
+            color: #62859d;
+            font-size: 10px;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        .nav-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #45677c;
+            margin-bottom: 12px;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .nav a {
+            color: #7c9caf;
+            text-decoration: none;
+            padding: 13px 11px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            transition: .2s;
+        }
+
+        .nav a:hover,
+        .nav a.active {
+            background: #0a2536;
+            color: var(--cyan);
+            box-shadow: inset 0 0 0 1px #123f56;
+        }
+
+        .nav-icon {
+            width: 14px;
+            text-align: center;
+            color: var(--cyan);
+        }
+
+        .sidebar-status {
+            position: absolute;
+            bottom: 25px;
+            left: 16px;
+            right: 16px;
+            border-top: 1px solid #153248;
+            padding-top: 17px;
+            color: #5d8196;
+            font-size: 11px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 9px var(--green);
+        }
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        .main {
+            margin-left: 230px;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            height: 76px;
+            border-bottom: 1px solid #123047;
+            background: rgba(2, 11, 20, .96);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            backdrop-filter: blur(12px);
+        }
+
+        .top-title {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: .5px;
+        }
+
+        .top-subtitle {
+            font-size: 10px;
+            color: #648399;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .system-status {
+            padding: 10px 15px;
+            border: 1px solid #16475b;
+            background: #061822;
+            border-radius: 18px;
+            color: var(--green);
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: .5px;
+        }
+
+        .system-status .status-dot {
+            margin-right: 8px;
+        }
+
+        .content {
+            padding: 27px 30px 50px;
+            max-width: 1600px;
+            margin: auto;
+        }
+
+        /* =========================
+           HERO
+        ========================= */
+
+        .hero {
+            margin-bottom: 22px;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 29px;
+            letter-spacing: -.5px;
+        }
+
+        .hero p {
+            margin: 7px 0 0;
+            color: #6c8ca2;
+            font-size: 13px;
+        }
+
+        .hero-line {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                var(--cyan),
+                #16445c,
+                transparent
+            );
+            margin-top: 19px;
+        }
+
+        /* =========================
+           KPI
+        ========================= */
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .kpi {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            padding: 19px 20px;
+            min-height: 110px;
+        }
+
+        .kpi-label {
+            color: #638399;
+            font-size: 10px;
+            letter-spacing: 1.7px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .kpi-value {
+            font-size: 25px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .kpi-value.green {
+            color: var(--green);
+        }
+
+        .kpi-value.orange {
+            color: var(--orange);
+        }
+
+        .kpi-value.red {
+            color: var(--red);
+        }
+
+        .kpi-small {
+            color: #65869c;
+            font-size: 10px;
+            margin-top: 6px;
+        }
+
+        /* =========================
+           PANELS
+        ========================= */
+
+        .panel {
+            background: linear-gradient(
+                145deg,
+                #071622,
+                #06111c
+            );
+            border: 1px solid #123952;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.16);
+        }
+
+        .panel-head {
+            min-height: 58px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #123047;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .panel-subtitle {
+            color: #5d8198;
+            font-size: 9px;
+            letter-spacing: 1.2px;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .panel-badge {
+            border: 1px solid #1a4c64;
+            border-radius: 8px;
+            padding: 8px 11px;
+            color: var(--cyan);
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .panel-body {
+            padding: 18px;
+        }
+
+        /* =========================
+           MAP
+        ========================= */
+
+        .map-panel {
+            margin-bottom: 18px;
+        }
+
+        .map-wrapper {
+            position: relative;
+            height: 560px;
+            background: #020b14;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-overlay-title {
+            position: absolute;
+            top: 15px;
+            left: 18px;
+            z-index: 500;
+            background: rgba(2, 12, 20, .91);
+            border: 1px solid #17425a;
+            padding: 10px 12px;
+            color: var(--cyan);
+            font-size: 10px;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        .map-coordinates {
+            position: absolute;
+            bottom: 12px;
+            left: 15px;
+            z-index: 500;
+            background: rgba(2, 12, 20, .9);
+            border: 1px solid #12384f;
+            padding: 8px 10px;
+            color: #5f849b;
+            font-size: 9px;
+            letter-spacing: .5px;
+            pointer-events: none;
+        }
+
+        .map-legend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 500;
+            background: rgba(2, 12, 20, .93);
+            border: 1px solid #17425a;
+            padding: 12px;
+            min-width: 165px;
+        }
+
+        .legend-title {
+            color: #7191a4;
+            font-size: 9px;
+            letter-spacing: 1px;
+            margin-bottom: 9px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #9db7c7;
+            font-size: 9px;
+            margin: 7px 0;
+        }
+
+        .legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-line {
+            width: 17px;
+            height: 2px;
+            flex-shrink: 0;
+        }
+
+        /* =========================
+           MAP DARK MODE
+        ========================= */
+
+        .leaflet-container {
+            background: #03101a;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: #071925;
+            color: #e8f7ff;
+            border: 1px solid #17435a;
+        }
+
+        .leaflet-popup-content {
+            font-size: 12px;
+        }
+
+        .leaflet-control-zoom a {
+            background: #071925 !important;
+            color: var(--cyan) !important;
+            border-color: #17435a !important;
+        }
+
+        /* =========================
+           INVESTIGATION GRID
+        ========================= */
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(360px, .8fr);
+            gap: 18px;
+        }
+
+        .origin-card {
+            background: #071b2a;
+            border: 1px solid #16445c;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .origin-label {
+            color: #66899f;
+            font-size: 9px;
+            letter-spacing: 1.3px;
+        }
+
+        .origin-value {
+            font-size: 24px;
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .origin-meta {
+            color: #5f8298;
+            font-size: 10px;
+            margin-top: 7px;
+        }
+
+        .evidence-box {
+            border: 1px solid #5b4021;
+            background: #1b130a;
+            color: #c99c63;
+            padding: 13px;
+            border-radius: 10px;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+
+        /* =========================
+           ENVIRONMENT
+        ========================= */
+
+        .environment-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .env-card {
+            background: #061522;
+            border: 1px solid #12374d;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .env-label {
+            color: #5f8297;
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .env-value {
+            margin-top: 9px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .env-sub {
+            color: #57798e;
+            font-size: 9px;
+            margin-top: 5px;
+        }
+
+        /* =========================
+           FORECAST
+        ========================= */
+
+        .forecast-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .forecast-summary-card {
+            background: #061522;
+            border: 1px solid #153c52;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .forecast-summary-label {
+            color: #608399;
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .forecast-summary-value {
+            color: white;
+            font-size: 17px;
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .forecast-summary-sub {
+            color: #54768c;
+            font-size: 9px;
+            margin-top: 5px;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 11px;
+        }
+
+        .forecast-card {
+            position: relative;
+            background: linear-gradient(
+                145deg,
+                #092033,
+                #061522
+            );
+            border: 1px solid #194660;
+            border-radius: 11px;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .forecast-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--orange);
+        }
+
+        .forecast-time {
+            color: var(--orange);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .forecast-position {
+            margin-top: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.6;
+        }
+
+        .forecast-meta {
+            margin-top: 11px;
+            border-top: 1px solid #15384c;
+            padding-top: 10px;
+            color: #648499;
+            font-size: 9px;
+            line-height: 1.8;
+        }
+
+        .forecast-status {
+            color: var(--green);
+            font-size: 9px;
+            margin-top: 9px;
+        }
+
+        /* =========================
+           AIS TABLE
+        ========================= */
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 14px;
+            color: #52758b;
+            font-size: 8px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #123047;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #0d293a;
+            color: #9cb5c4;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background: rgba(16, 56, 77, .25);
+        }
+
+        .rank {
+            color: var(--cyan);
+            font-weight: 800;
+        }
+
+        .vessel-name {
+            color: white;
+            font-weight: 800;
+        }
+
+        .flag {
+            color: #7fa3b7;
+        }
+
+        .score {
+            color: var(--green);
+            font-weight: 800;
+        }
+
+        .top-vessel-row td {
+            background: rgba(255, 74, 83, .045);
+        }
+
+        /* =========================
+           VESSEL CARDS
+        ========================= */
+
+        .vessel-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .vessel-card {
+            background: #061522;
+            border: 1px solid #153b50;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .vessel-card.top {
+            border-color: #71383d;
+            box-shadow: inset 0 0 0 1px rgba(255, 89, 100, .08);
+        }
+
+        .vessel-rank {
+            font-size: 9px;
+            color: var(--cyan);
+            letter-spacing: 1px;
+        }
+
+        .vessel-card.top .vessel-rank {
+            color: var(--red);
+        }
+
+        .vessel-card-name {
+            margin-top: 8px;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .vessel-card-id {
+            margin-top: 5px;
+            color: #52768c;
+            font-size: 9px;
+        }
+
+        .vessel-score {
+            margin-top: 13px;
+            font-size: 26px;
+            font-weight: 900;
+            color: var(--green);
+        }
+
+        .score-label {
+            color: #587b90;
+            font-size: 8px;
+            letter-spacing: 1px;
+        }
+
+        .metric {
+            margin-top: 11px;
+        }
+
+        .metric-head {
+            display: flex;
+            justify-content: space-between;
+            color: #7291a3;
+            font-size: 9px;
+            margin-bottom: 5px;
+        }
+
+        .metric-bar {
+            height: 5px;
+            background: #0c2b3d;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: var(--cyan);
+            border-radius: 4px;
+        }
+
+        /* =========================
+           SATELLITE VALIDATION
+        ========================= */
+
+        .satellite-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) 360px;
+            gap: 18px;
+        }
+
+        .satellite-image-box {
+            min-height: 520px;
+            background: #02090f;
+            border: 1px solid #15374d;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .satellite-image-box img {
+            width: 100%;
+            height: 100%;
+            max-height: 520px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-label {
+            position: absolute;
+            left: 13px;
+            top: 13px;
+            z-index: 10;
+            border: 1px solid #17445b;
+            background: rgba(2, 12, 20, .9);
+            padding: 8px 10px;
+            color: var(--cyan);
+            font-size: 8px;
+            letter-spacing: 1px;
+        }
+
+        .image-loading {
+            color: #4d7288;
+            font-size: 10px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .validation-stats {
+            display: grid;
+            gap: 10px;
+        }
+
+        .validation-card {
+            background: #061522;
+            border: 1px solid #15394e;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .validation-label {
+            color: #5e8095;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .validation-value {
+            margin-top: 8px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .validation-value.green {
+            color: var(--green);
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        footer {
+            text-align: center;
+            color: #3d6074;
+            font-size: 9px;
+            letter-spacing: .5px;
+            padding: 20px;
+            border-top: 1px solid #102c3e;
+            margin-top: 20px;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media(max-width:1100px) {
+
+            .sidebar {
+                width: 190px;
+            }
+
+            .main {
+                margin-left: 190px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .forecast-grid,
+            .forecast-summary,
+            .environment-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-2,
+            .satellite-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media(max-width:750px) {
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #123047;
+            }
+
+            .sidebar-status {
+                position: relative;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                margin-top: 20px;
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .content {
+                padding: 18px 12px;
+            }
+
+            .kpi-grid,
+            .forecast-grid,
+            .forecast-summary,
+            .environment-grid,
+            .vessel-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .map-wrapper {
+                height: 450px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     SIDEBAR
+========================================================= -->
+
+<aside class="sidebar">
+
+    <div class="brand">
+
+        <div class="brand-logo">
+            OT
+        </div>
+
+        <div class="brand-name">
+            OceanTraceAI
+        </div>
+
+        <div class="brand-sub">
+            MARITIME INTELLIGENCE
+        </div>
+
+    </div>
+
+    <div class="nav-title">
+        MISSION CONTROL
+    </div>
+
+    <nav class="nav">
+
+        <a href="#dashboard" class="active">
+            <span class="nav-icon">◆</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="#map-section">
+            <span class="nav-icon">✦</span>
+            <span>Geospatial Map</span>
+        </a>
+
+        <a href="#forecast">
+            <span class="nav-icon">➜</span>
+            <span>Forward Drift</span>
+        </a>
+
+        <a href="#satellite">
+            <span class="nav-icon">▣</span>
+            <span>Satellite Analysis</span>
+        </a>
+
+        <a href="#ais">
+            <span class="nav-icon">◇</span>
+            <span>AIS Attribution</span>
+        </a>
+
+        <a href="#investigation">
+            <span class="nav-icon">⌁</span>
+            <span>Investigation</span>
+        </a>
+
+    </nav>
+
+    <div class="sidebar-status">
+        <span class="status-dot"></span>
+        API CONNECTED
+    </div>
+
+</aside>
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+
+<main class="main">
+
+    <header class="topbar">
+
+        <div>
+            <div class="top-title">
+                MARITIME OIL SPILL INTELLIGENCE PLATFORM
+            </div>
+
+            <div class="top-subtitle">
+                Satellite • Oceanography • AIS • AI Attribution
+            </div>
+        </div>
+
+        <div class="system-status" id="system-status">
+            <span class="status-dot"></span>
+            SYSTEM OPERATIONAL
+        </div>
+
+    </header>
+
+
+    <div class="content" id="dashboard">
+
+        <!-- =================================================
+             HERO
+        ================================================= -->
+
+        <section class="hero">
+
+            <h1>
+                Investigation Command Center
+            </h1>
+
+            <p>
+                Satellite oil-spill detection • Environmental backtracking • AIS vessel attribution
+            </p>
+
+            <div class="hero-line"></div>
+
+        </section>
+
+
+        <!-- =================================================
+             KPI
+        ================================================= -->
+
+        <section class="kpi-grid">
+
+            <div class="kpi">
+
+                <div class="kpi-label">
+                    Spill detected
+                </div>
+
+                <div
+                    class="kpi-value green"
+                    id="kpi-spill"
+                >
+                    ACTIVE
+                </div>
+
+                <div
+                    class="kpi-small"
+                    id="kpi-spill-sub"
+                >
+                    Sentinel-1 SAR analysis
+                </div>
+
+            </div>
+
+
+            <div class="kpi">
+
+                <div class="kpi-label">
+                    Estimated origin
+                </div>
+
+                <div
+                    class="kpi-value"
+                    id="kpi-origin"
+                >
+                    --
+                </div>
+
+                <div
+                    class="kpi-small"
+                    id="kpi-origin-sub"
+                >
+                    Awaiting environmental backtracking
+                </div>
+
+            </div>
+
+
+            <div class="kpi">
+
+                <div class="kpi-label">
+                    AIS candidates
+                </div>
+
+                <div
+                    class="kpi-value"
+                    id="kpi-candidates"
+                >
+                    --
+                </div>
+
+                <div class="kpi-small">
+                    After spatial & temporal filtering
+                </div>
+
+            </div>
+
+
+            <div class="kpi">
+
+                <div class="kpi-label">
+                    Top evidence
+                </div>
+
+                <div
+                    class="kpi-value green"
+                    id="kpi-score"
+                >
+                    --
+                </div>
+
+                <div
+                    class="kpi-small"
+                    id="kpi-vessel"
+                >
+                    Awaiting AIS attribution
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MAP
+        ================================================= -->
+
+        <section
+            class="panel map-panel"
+            id="map-section"
+        >
+
+            <div class="panel-head">
+
+                <div>
+                    <div class="panel-title">
+                        Geospatial Investigation
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Oil spill • origin • vessel traffic • forecast trajectory
+                    </div>
+                </div>
+
+                <div class="panel-badge">
+                    INDIAN OCEAN
+                </div>
+
+            </div>
+
+
+            <div class="map-wrapper">
+
+                <div class="map-overlay-title">
+                    OCEANTRACEAI GEOSPATIAL VIEW
+                </div>
+
+                <div
+                    class="map-legend"
+                >
+
+                    <div class="legend-title">
+                        MAP LAYERS
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-dot"
+                            style="background:#ffad42;"
+                        ></span>
+                        Detected slick
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-dot"
+                            style="background:#18c8ff;"
+                        ></span>
+                        Estimated origin
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-dot"
+                            style="background:#42b8ff;"
+                        ></span>
+                        AIS vessels
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-dot"
+                            style="background:#ff5964;"
+                        ></span>
+                        Top suspect
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-line"
+                            style="background:#18c8ff;"
+                        ></span>
+                        Vessel trajectory
+                    </div>
+
+                    <div class="legend-row">
+                        <span
+                            class="legend-line"
+                            style="background:#ffad42;"
+                        ></span>
+                        Forward drift
+                    </div>
+
+                </div>
+
+
+                <div id="map"></div>
+
+
+                <div
+                    class="map-coordinates"
+                    id="map-coordinates"
+                >
+                    SPILL: -- | ORIGIN: --
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ENVIRONMENT + TOP VESSEL
+        ================================================= -->
+
+        <section
+            class="grid-2"
+            id="investigation"
+        >
+
+            <!-- ENVIRONMENT -->
+
+            <div class="panel">
+
+                <div class="panel-head">
+
+                    <div>
+                        <div class="panel-title">
+                            Environmental Intelligence
+                        </div>
+
+                        <div class="panel-subtitle">
+                            Copernicus ocean current + meteorological wind
+                        </div>
+                    </div>
+
+                    <div class="panel-badge">
+                        LIVE PIPELINE
+                    </div>
+
+                </div>
+
+
+                <div class="panel-body">
+
+                    <div class="environment-grid">
+
+                        <div class="env-card">
+
+                            <div class="env-label">
+                                Wind speed
+                            </div>
+
+                            <div
+                                class="env-value"
+                                id="wind-speed"
+                            >
+                                --
+                            </div>
+
+                            <div
+                                class="env-sub"
+                                id="wind-direction"
+                            >
+                                --
+                            </div>
+
+                        </div>
+
+
+                        <div class="env-card">
+
+                            <div class="env-label">
+                                Ocean current
+                            </div>
+
+                            <div
+                                class="env-value"
+                                id="current-speed"
+                            >
+                                --
+                            </div>
+
+                            <div
+                                class="env-sub"
+                                id="current-direction"
+                            >
+                                --
+                            </div>
+
+                        </div>
+
+
+                        <div class="env-card">
+
+                            <div class="env-label">
+                                Resultant transport
+                            </div>
+
+                            <div
+                                class="env-value"
+                                id="transport-speed"
+                            >
+                                --
+                            </div>
+
+                            <div
+                                class="env-sub"
+                                id="transport-direction"
+                            >
+                                --
+                            </div>
+
+                        </div>
+
+
+                        <div class="env-card">
+
+                            <div class="env-label">
+                                Backtrack
+                            </div>
+
+                            <div
+                                class="env-value"
+                                id="backtrack-hours"
+                            >
+                                --
+                            </div>
+
+                            <div class="env-sub">
+                                Estimated source window
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TOP VESSEL -->
+
+            <div class="panel">
+
+                <div class="panel-head">
+
+                    <div>
+                        <div class="panel-title">
+                            Vessel Attribution
+                        </div>
+
+                        <div class="panel-subtitle">
+                            Highest evidence candidate
+                        </div>
+                    </div>
+
+                    <div class="panel-badge">
+                        TOP CANDIDATE
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="panel-body"
+                    id="top-vessel-container"
+                >
+
+                    <div class="vessel-card top">
+
+                        <div class="vessel-rank">
+                            RANK #01
+                        </div>
+
+                        <div
+                            class="vessel-card-name"
+                            id="top-vessel-name"
+                        >
+                            Loading...
+                        </div>
+
+                        <div
+                            class="vessel-card-id"
+                            id="top-vessel-id"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            class="vessel-score"
+                            id="top-vessel-score"
+                        >
+                            --
+                        </div>
+
+                        <div class="score-label">
+                            FINAL EVIDENCE SCORE
+                        </div>
+
+                        <div id="top-vessel-metrics">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FORWARD DRIFT
+        ================================================= -->
+
+        <section
+            class="panel"
+            id="forecast"
+        >
+
+            <div class="panel-head">
+
+                <div>
+                    <div class="panel-title">
+                        Forward Spill Drift Forecast
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Estimated future trajectory from environmental transport
+                    </div>
+                </div>
+
+                <div
+                    class="panel-badge"
+                    id="forecast-badge"
+                >
+                    LOADING
+                </div>
+
+            </div>
+
+
+            <div class="panel-body">
+
+                <div class="forecast-summary">
+
+                    <div class="forecast-summary-card">
+
+                        <div class="forecast-summary-label">
+                            Forecast model
+                        </div>
+
+                        <div
+                            class="forecast-summary-value"
+                            id="forecast-model"
+                        >
+                            Environmental drift
+                        </div>
+
+                        <div class="forecast-summary-sub">
+                            Current + wind transport
+                        </div>
+
+                    </div>
+
+
+                    <div class="forecast-summary-card">
+
+                        <div class="forecast-summary-label">
+                            Start position
+                        </div>
+
+                        <div
+                            class="forecast-summary-value"
+                            id="forecast-start"
+                        >
+                            --
+                        </div>
+
+                        <div class="forecast-summary-sub">
+                            Detected spill
+                        </div>
+
+                    </div>
+
+
+                    <div class="forecast-summary-card">
+
+                        <div class="forecast-summary-label">
+                            Final forecast
+                        </div>
+
+                        <div
+                            class="forecast-summary-value"
+                            id="forecast-final"
+                        >
+                            --
+                        </div>
+
+                        <div class="forecast-summary-sub">
+                            T+24 hours
+                        </div>
+
+                    </div>
+
+
+                    <div class="forecast-summary-card">
+
+                        <div class="forecast-summary-label">
+                            Final uncertainty
+                        </div>
+
+                        <div
+                            class="forecast-summary-value"
+                            id="forecast-uncertainty"
+                        >
+                            --
+                        </div>
+
+                        <div class="forecast-summary-sub">
+                            Estimated radius
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="forecast-grid"
+                    id="forecast-grid"
+                >
+
+                    <div class="forecast-card">
+                        <div class="forecast-time">
+                            Loading forecast...
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AIS ATTRIBUTION
+        ================================================= -->
+
+        <section
+            class="panel"
+            id="ais"
+        >
+
+            <div class="panel-head">
+
+                <div>
+                    <div class="panel-title">
+                        AIS Vessel Attribution
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Spatial + temporal + trajectory + anomaly + environmental evidence
+                    </div>
+                </div>
+
+                <div
+                    class="panel-badge"
+                    id="ais-badge"
+                >
+                    LOADING
+                </div>
+
+            </div>
+
+
+            <div class="panel-body">
+
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Rank</th>
+                                <th>Vessel</th>
+                                <th>Flag</th>
+                                <th>Distance</th>
+                                <th>Time Gap</th>
+                                <th>Trajectory</th>
+                                <th>Anomaly</th>
+                                <th>Environment</th>
+                                <th>Final Evidence</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody
+                            id="ais-table-body"
+                        >
+
+                            <tr>
+                                <td colspan="9">
+                                    Loading AIS attribution...
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AIS VESSEL CARDS
+        ================================================= -->
+
+        <section class="panel">
+
+            <div class="panel-head">
+
+                <div>
+                    <div class="panel-title">
+                        Candidate Vessel Profiles
+                    </div>
+
+                    <div class="panel-subtitle">
+                        All filtered vessels remain visible for investigation
+                    </div>
+                </div>
+
+                <div class="panel-badge">
+                    ALL CANDIDATES
+                </div>
+
+            </div>
+
+            <div class="panel-body">
+
+                <div
+                    class="vessel-grid"
+                    id="vessel-grid"
+                >
+
+                    <div class="vessel-card">
+                        Loading vessel candidates...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SATELLITE VALIDATION
+        ================================================= -->
+
+        <section
+            class="panel"
+            id="satellite"
+        >
+
+            <div class="panel-head">
+
+                <div>
+                    <div class="panel-title">
+                        AI Model Validation
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Sentinel-1 SAR • U-Net validation result
+                    </div>
+                </div>
+
+                <div class="panel-badge">
+                    IMAGE 01338 • SEPARATE VALIDATION
+                </div>
+
+            </div>
+
+
+            <div class="panel-body">
+
+                <div class="satellite-layout">
+
+                    <div class="satellite-image-box">
+
+                        <div class="image-label">
+                            U-NET OIL SPILL VALIDATION
+                        </div>
+
+                        <img
+                            id="satellite-image"
+                            src="/api/satellite-image"
+                            alt="Sentinel-1 oil spill validation"
+                            onerror="showSatelliteError()"
+                        />
+
+                        <div
+                            class="image-loading"
+                            id="satellite-loading"
+                            style="display:none;"
+                        >
+                            SATELLITE VALIDATION IMAGE UNAVAILABLE
+                            <br>
+                            <br>
+                            Check /api/satellite-image
+                        </div>
+
+                    </div>
+
+
+                    <div class="validation-stats">
+
+                        <div class="validation-card">
+
+                            <div class="validation-label">
+                                Validation scene
+                            </div>
+
+                            <div
+                                class="validation-value"
+                                id="validation-image-id"
+                            >
+                                01338
+                            </div>
+
+                        </div>
+
+
+                        <div class="validation-card">
+
+                            <div class="validation-label">
+                                Detected coverage
+                            </div>
+
+                            <div
+                                class="validation-value"
+                                id="validation-coverage"
+                            >
+                                1.3570%
+                            </div>
+
+                        </div>
+
+
+                        <div class="validation-card">
+
+                            <div class="validation-label">
+                                Dice score
+                            </div>
+
+                            <div
+                                class="validation-value green"
+                                id="validation-dice"
+                            >
+                                0.8098
+                            </div>
+
+                        </div>
+
+
+                        <div class="validation-card">
+
+                            <div class="validation-label">
+                                IoU score
+                            </div>
+
+                            <div
+                                class="validation-value green"
+                                id="validation-iou"
+                            >
+                                0.6804
+                            </div>
+
+                        </div>
+
+
+                        <div class="validation-card">
+
+                            <div class="validation-label">
+                                Validation centroid
+                            </div>
+
+                            <div
+                                class="validation-value"
+                                id="validation-centroid"
+                            >
+                                28.903746° N
+                                <br>
+                                -89.031740° W
+                            </div>
+
+                        </div>
+
+
+                        <div class="evidence-box">
+
+                            <strong>Important:</strong>
+                            Image 01338 is a separate trained-model validation example.
+                            Its metrics are not measurements of INDIA_TEST_001.
+                            The Indian Ocean incident uses demonstration coordinates,
+                            environmental data and synthetic AIS until real Indian AIS
+                            and Sentinel-1 inference are connected end-to-end.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FOOTER
+        ================================================= -->
+
+        <footer>
+
+            OCEANTRACEAI • SIH PROBLEM STATEMENT 26143 •
+            SATELLITE + OCEANOGRAPHY + AIS + AI ATTRIBUTION
+
+        </footer>
+
+    </div>
+
+</main>
+
+
+<!-- =========================================================
+     LEAFLET
+========================================================= -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+<script>
+
+    /* =========================================================
+       CONFIGURATION
+    ========================================================= */
+
+    const API = "http://127.0.0.1:8000/api";
+
+
+    /* =========================================================
+       MAP
+    ========================================================= */
+
+    let map = null;
+
+    let layers = {
+        spill: null,
+        origin: null,
+        uncertainty: null,
+        investigationLine: null,
+        tracks: null,
+        forecast: null
+    };
+
+
+    /*
+     * IMPORTANT:
+     * We deliberately use OpenStreetMap here.
+     * Your dark dashboard is created around the map itself.
+     */
+
+    function initMap() {
+
+        map = L.map("map", {
+            zoomControl: true,
+            attributionControl: true
+        }).setView(
+            [18.50, 70.50],
+            7
+        );
+
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap"
+            }
+        ).addTo(map);
+
+
+        /*
+         * Darken the standard map visually.
+         */
+        const mapStyle = document.createElement("style");
+
+        mapStyle.innerHTML = `
+            .leaflet-tile {
+                filter:
+                    brightness(.42)
+                    contrast(1.25)
+                    saturate(.65)
+                    hue-rotate(165deg);
+            }
+        `;
+
+        document.head.appendChild(mapStyle);
+
+
+        layers.tracks = L.layerGroup().addTo(map);
+        layers.forecast = L.layerGroup().addTo(map);
+    }
+
+
+    /* =========================================================
+       HELPERS
+    ========================================================= */
+
+    function number(value, fallback = 0) {
+
+        const n = Number(value);
+
+        return Number.isFinite(n)
+            ? n
+            : fallback;
+    }
+
+
+    function fixed(value, digits = 5) {
+
+        const n = Number(value);
+
+        if (!Number.isFinite(n)) {
+            return "--";
+        }
+
+        return n.toFixed(digits);
+    }
+
+
+    function firstDefined(obj, keys, fallback = null) {
+
+        for (const key of keys) {
+
+            if (
+                obj &&
+                obj[key] !== undefined &&
+                obj[key] !== null &&
+                obj[key] !== ""
+            ) {
+                return obj[key];
+            }
+
+        }
+
+        return fallback;
+    }
+
+
+    function formatLat(lat) {
+
+        const n = number(lat);
+
+        return `${Math.abs(n).toFixed(4)}° ${n >= 0 ? "N" : "S"}`;
+    }
+
+
+    function formatLon(lon) {
+
+        const n = number(lon);
+
+        return `${Math.abs(n).toFixed(4)}° ${n >= 0 ? "E" : "W"}`;
+    }
+
+
+    function formatPosition(lat, lon) {
+
+        return `${formatLat(lat)}<br>${formatLon(lon)}`;
+    }
+
+
+    function clearLayer(layerName) {
+
+        if (layers[layerName]) {
+
+            if (map.hasLayer(layers[layerName])) {
+                map.removeLayer(layers[layerName]);
+            }
+
+            layers[layerName] = null;
+        }
+
+    }
+
+
+    /* =========================================================
+       DASHBOARD
+    ========================================================= */
+
+    async function loadDashboard() {
+
+        try {
+
+            const response = await fetch(
+                `${API}/dashboard`,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+            if (!response.ok) {
+                throw new Error(
+                    `Dashboard HTTP ${response.status}`
+                );
+            }
+
+
+            const data = await response.json();
+
+            updateDashboard(data);
+
+        }
+        catch (error) {
+
+            console.error(
+                "Dashboard error:",
+                error
+            );
+
+            document.getElementById(
+                "system-status"
+            ).innerHTML =
+                `<span class="status-dot"
+                    style="background:#ff5964;box-shadow:0 0 9px #ff5964;">
+                </span>
+                API CONNECTION ERROR`;
+
+        }
+
+    }
+
+
+    function updateDashboard(data) {
+
+        /*
+         * The backend structure may contain:
+         * spill
+         * origin
+         * environment
+         * attribution
+         *
+         * We use flexible field lookup so the UI
+         * remains compatible with your current backend.
+         */
+
+        const spill =
+            data.spill ||
+            data.detection ||
+            data.satellite ||
+            {};
+
+        const origin =
+            data.origin ||
+            data.backtracking ||
+            data.source ||
+            {};
+
+        const environment =
+            data.environment ||
+            data.environmental ||
+            {};
+
+        const attribution =
+            data.attribution ||
+            data.ais ||
+            data.vessels ||
+            {};
+
+
+        /* ---------------------------------------------
+           SPILL
+        --------------------------------------------- */
+
+        const spillLat =
+            firstDefined(
+                spill,
+                [
+                    "latitude",
+                    "lat",
+                    "spill_latitude"
+                ],
+                18.5
+            );
+
+        const spillLon =
+            firstDefined(
+                spill,
+                [
+                    "longitude",
+                    "lon",
+                    "spill_longitude"
+                ],
+                70.5
+            );
+
+
+        document.getElementById(
+            "kpi-spill-sub"
+        ).textContent =
+            `Indian Ocean • ${formatLat(spillLat)} ${formatLon(spillLon)}`;
+
+
+        /* ---------------------------------------------
+           ORIGIN
+        --------------------------------------------- */
+
+        const originLat =
+            firstDefined(
+                origin,
+                [
+                    "latitude",
+                    "lat",
+                    "source_latitude",
+                    "origin_latitude"
+                ],
+                null
+            );
+
+        const originLon =
+            firstDefined(
+                origin,
+                [
+                    "longitude",
+                    "lon",
+                    "source_longitude",
+                    "origin_longitude"
+                ],
+                null
+            );
+
+
+        if (
+            originLat !== null &&
+            originLon !== null
+        ) {
+
+            document.getElementById(
+                "kpi-origin"
+            ).textContent =
+                `${number(originLat).toFixed(4)}°`;
+
+            document.getElementById(
+                "kpi-origin-sub"
+            ).textContent =
+                `${Math.abs(number(originLon)).toFixed(4)}° ${
+                    number(originLon) >= 0 ? "E" : "W"
+                }`;
+
+        }
+
+
+        /* ---------------------------------------------
+           ENVIRONMENT
+        --------------------------------------------- */
+
+        const windSpeed =
+            firstDefined(
+                environment,
+                [
+                    "wind_speed_ms",
+                    "wind_speed",
+                    "wind"
+                ],
+                null
+            );
+
+        const windDirection =
+            firstDefined(
+                environment,
+                [
+                    "wind_direction_from_deg",
+                    "wind_direction",
+                    "wind_from"
+                ],
+                null
+            );
+
+        const currentSpeed =
+            firstDefined(
+                environment,
+                [
+                    "current_speed_ms",
+                    "current_speed",
+                    "ocean_current_speed"
+                ],
+                null
+            );
+
+        const currentDirection =
+            firstDefined(
+                environment,
+                [
+                    "current_direction_toward_deg",
+                    "current_direction",
+                    "ocean_current_direction"
+                ],
+                null
+            );
+
+        const transportSpeed =
+            firstDefined(
+                environment,
+                [
+                    "transport_speed_ms",
+                    "resultant_speed_ms",
+                    "transport_speed"
+                ],
+                null
+            );
+
+        const transportDirection =
+            firstDefined(
+                environment,
+                [
+                    "transport_direction_deg",
+                    "resultant_direction_deg",
+                    "transport_direction"
+                ],
+                null
+            );
+
+
+        if (windSpeed !== null) {
+
+            document.getElementById(
+                "wind-speed"
+            ).textContent =
+                `${number(windSpeed).toFixed(2)} m/s`;
+
+        }
+
+
+        if (windDirection !== null) {
+
+            document.getElementById(
+                "wind-direction"
+            ).textContent =
+                `${number(windDirection).toFixed(1)}° FROM`;
+
+        }
+
+
+        if (currentSpeed !== null) {
+
+            document.getElementById(
+                "current-speed"
+            ).textContent =
+                `${number(currentSpeed).toFixed(3)} m/s`;
+
+        }
+
+
+        if (currentDirection !== null) {
+
+            document.getElementById(
+                "current-direction"
+            ).textContent =
+                `${number(currentDirection).toFixed(1)}° TOWARD`;
+
+        }
+
+
+        if (transportSpeed !== null) {
+
+            document.getElementById(
+                "transport-speed"
+            ).textContent =
+                `${number(transportSpeed).toFixed(3)} m/s`;
+
+        }
+
+
+        if (transportDirection !== null) {
+
+            document.getElementById(
+                "transport-direction"
+            ).textContent =
+                `${number(transportDirection).toFixed(1)}° TOWARD`;
+
+        }
+
+
+        const backtrack =
+            firstDefined(
+                origin,
+                [
+                    "backtrack_hours",
+                    "hours",
+                    "backtrack"
+                ],
+                12
+            );
+
+
+        document.getElementById(
+            "backtrack-hours"
+        ).textContent =
+            `${backtrack} h`;
+
+
+        /* ---------------------------------------------
+           MAP
+        --------------------------------------------- */
+
+        drawInvestigation(
+            spillLat,
+            spillLon,
+            originLat,
+            originLon
+        );
+
+
+        updateMapCoordinates(
+            spillLat,
+            spillLon,
+            originLat,
+            originLon
+        );
+
+
+        /* ---------------------------------------------
+           AIS
+        --------------------------------------------- */
+
+        const candidates =
+            normalizeVessels(
+                attribution
+            );
+
+
+        renderAIS(
+            candidates
+        );
+
+    }
+
+
+    /* =========================================================
+       INVESTIGATION MAP
+    ========================================================= */
+
+    function drawInvestigation(
+        spillLat,
+        spillLon,
+        originLat,
+        originLon
+    ) {
+
+        clearLayer("spill");
+        clearLayer("origin");
+        clearLayer("uncertainty");
+        clearLayer("investigationLine");
+
+
+        const group = L.layerGroup();
+
+
+        /* ---------------------------------------------
+           DETECTED SPILL
+        --------------------------------------------- */
+
+        layers.spill =
+            L.circleMarker(
+                [
+                    number(spillLat),
+                    number(spillLon)
+                ],
+                {
+                    radius: 10,
+                    color: "#ffad42",
+                    weight: 3,
+                    fillColor: "#ffad42",
+                    fillOpacity: .85
+                }
+            )
+            .bindPopup(`
+                <b style="color:#ffad42;">
+                    DETECTED OIL SPILL
+                </b>
+                <br><br>
+                Latitude:
+                ${fixed(spillLat, 6)}
+                <br>
+                Longitude:
+                ${fixed(spillLon, 6)}
+            `)
+            .addTo(group);
+
+
+        /*
+         * Spill glow.
+         */
+
+        L.circle(
+            [
+                number(spillLat),
+                number(spillLon)
+            ],
+            {
+                radius: 10000,
+                color: "#ffad42",
+                weight: 1,
+                opacity: .35,
+                fillColor: "#ffad42",
+                fillOpacity: .06
+            }
+        ).addTo(group);
+
+
+        /* ---------------------------------------------
+           ORIGIN
+        --------------------------------------------- */
+
+        if (
+            originLat !== null &&
+            originLon !== null
+        ) {
+
+            layers.origin =
+                L.circleMarker(
+                    [
+                        number(originLat),
+                        number(originLon)
+                    ],
+                    {
+                        radius: 7,
+                        color: "#18c8ff",
+                        weight: 3,
+                        fillColor: "#071925",
+                        fillOpacity: 1
+                    }
+                )
+                .bindPopup(`
+                    <b style="color:#18c8ff;">
+                        ESTIMATED SOURCE
+                    </b>
+                    <br><br>
+                    Latitude:
+                    ${fixed(originLat, 6)}
+                    <br>
+                    Longitude:
+                    ${fixed(originLon, 6)}
+                `)
+                .addTo(group);
+
+
+            /*
+             * Backtracking line.
+             */
+
+            layers.investigationLine =
+                L.polyline(
+                    [
+                        [
+                            number(originLat),
+                            number(originLon)
+                        ],
+                        [
+                            number(spillLat),
+                            number(spillLon)
+                        ]
+                    ],
+                    {
+                        color: "#18c8ff",
+                        weight: 3,
+                        opacity: .85,
+                        dashArray: "7 8"
+                    }
+                ).addTo(group);
+
+
+            /*
+             * Origin uncertainty.
+             */
+
+            layers.uncertainty =
+                L.circle(
+                    [
+                        number(originLat),
+                        number(originLon)
+                    ],
+                    {
+                        radius: 10000,
+                        color: "#18c8ff",
+                        weight: 1,
+                        dashArray: "4 7",
+                        opacity: .55,
+                        fillColor: "#18c8ff",
+                        fillOpacity: .03
+                    }
+                ).addTo(group);
+
+        }
+
+
+        group.addTo(map);
+
+
+        const bounds = [
+            [
+                number(spillLat),
+                number(spillLon)
+            ]
+        ];
+
+
+        if (
+            originLat !== null &&
+            originLon !== null
+        ) {
+
+            bounds.push([
+                number(originLat),
+                number(originLon)
+            ]);
+
+        }
+
+
+        map.fitBounds(
+            bounds,
+            {
+                padding: [60, 60],
+                maxZoom: 8
+            }
+        );
+
+    }
+
+
+    function updateMapCoordinates(
+        spillLat,
+        spillLon,
+        originLat,
+        originLon
+    ) {
+
+        const spillText =
+            `${fixed(spillLat, 4)}, ${fixed(spillLon, 4)}`;
+
+        let originText = "--";
+
+        if (
+            originLat !== null &&
+            originLon !== null
+        ) {
+
+            originText =
+                `${fixed(originLat, 4)}, ${fixed(originLon, 4)}`;
+
+        }
+
+
+        document.getElementById(
+            "map-coordinates"
+        ).textContent =
+            `SPILL: ${spillText}   |   ORIGIN: ${originText}`;
+
+    }
+
+
+    /* =========================================================
+       AIS NORMALIZATION
+    ========================================================= */
+
+    function normalizeVessels(data) {
+
+        let vessels = [];
+
+
+        if (Array.isArray(data)) {
+
+            vessels = data;
+
+        }
+        else if (
+            data &&
+            Array.isArray(data.vessels)
+        ) {
+
+            vessels = data.vessels;
+
+        }
+        else if (
+            data &&
+            Array.isArray(data.candidates)
+        ) {
+
+            vessels = data.candidates;
+
+        }
+        else if (
+            data &&
+            Array.isArray(data.results)
+        ) {
+
+            vessels = data.results;
+
+        }
+        else if (
+            data &&
+            Array.isArray(data.ranking)
+        ) {
+
+            vessels = data.ranking;
+
+        }
+
+
+        return vessels.map(
+            (vessel, index) => {
+
+                return {
+
+                    rank:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "rank",
+                                    "ranking"
+                                ],
+                                index + 1
+                            )
+                        ),
+
+                    name:
+                        firstDefined(
+                            vessel,
+                            [
+                                "vessel_name",
+                                "name",
+                                "ship_name"
+                            ],
+                            `VESSEL ${index + 1}`
+                        ),
+
+                    mmsi:
+                        firstDefined(
+                            vessel,
+                            [
+                                "mmsi",
+                                "MMSI"
+                            ],
+                            "N/A"
+                        ),
+
+                    flag:
+                        firstDefined(
+                            vessel,
+                            [
+                                "flag",
+                                "country",
+                                "nation"
+                            ],
+                            "N/A"
+                        ),
+
+                    latitude:
+                        firstDefined(
+                            vessel,
+                            [
+                                "latitude",
+                                "lat"
+                            ],
+                            null
+                        ),
+
+                    longitude:
+                        firstDefined(
+                            vessel,
+                            [
+                                "longitude",
+                                "lon"
+                            ],
+                            null
+                        ),
+
+                    distance:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "distance_km",
+                                    "distance"
+                                ],
+                                0
+                            )
+                        ),
+
+                    timeGap:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "time_gap_hours",
+                                    "time_gap",
+                                    "temporal_gap_hours"
+                                ],
+                                0
+                            )
+                        ),
+
+                    trajectory:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "trajectory_score",
+                                    "trajectory"
+                                ],
+                                0
+                            )
+                        ),
+
+                    anomaly:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "anomaly_score",
+                                    "anomaly"
+                                ],
+                                0
+                            )
+                        ),
+
+                    environmental:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "environmental_score",
+                                    "environment"
+                                ],
+                                0
+                            )
+                        ),
+
+                    proximity:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "proximity_score",
+                                    "proximity"
+                                ],
+                                0
+                            )
+                        ),
+
+                    temporal:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "temporal_score",
+                                    "temporal"
+                                ],
+                                0
+                            )
+                        ),
+
+                    finalScore:
+                        number(
+                            firstDefined(
+                                vessel,
+                                [
+                                    "final_score",
+                                    "final_evidence_score",
+                                    "score",
+                                    "evidence_score"
+                                ],
+                                0
+                            )
+                        ),
+
+                    track:
+                        firstDefined(
+                            vessel,
+                            [
+                                "track",
+                                "trajectory_points",
+                                "positions",
+                                "history"
+                            ],
+                            []
+                        )
+
+                };
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       AIS RENDER
+    ========================================================= */
+
+    function renderAIS(vessels) {
+
+        document.getElementById(
+            "ais-badge"
+        ).textContent =
+            `${vessels.length} CANDIDATES`;
+
+
+        document.getElementById(
+            "kpi-candidates"
+        ).textContent =
+            vessels.length;
+
+
+        if (!vessels.length) {
+
+            document.getElementById(
+                "ais-table-body"
+            ).innerHTML = `
+                <tr>
+                    <td colspan="9">
+                        No AIS candidates returned.
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        /*
+         * Sort by evidence score.
+         */
+
+        vessels.sort(
+            (a, b) =>
+                b.finalScore - a.finalScore
+        );
+
+
+        /*
+         * Reassign ranks for display.
+         */
+
+        vessels.forEach(
+            (vessel, index) => {
+                vessel.rank = index + 1;
+            }
+        );
+
+
+        const top = vessels[0];
+
+
+        document.getElementById(
+            "kpi-score"
+        ).textContent =
+            `${top.finalScore.toFixed(1)}%`;
+
+
+        document.getElementById(
+            "kpi-vessel"
+        ).textContent =
+            top.name;
+
+
+        renderTopVessel(top);
+
+        renderVesselCards(vessels);
+
+        renderAISTable(vessels);
+
+        drawAllVessels(vessels);
+
+    }
+
+
+    /* =========================================================
+       AIS TABLE
+    ========================================================= */
+
+    function renderAISTable(vessels) {
+
+        const body =
+            document.getElementById(
+                "ais-table-body"
+            );
+
+
+        body.innerHTML =
+            vessels.map(
+                vessel => {
+
+                    const top =
+                        vessel.rank === 1;
+
+
+                    return `
+                        <tr
+                            class="${
+                                top
+                                    ? "top-vessel-row"
+                                    : ""
+                            }"
+                        >
+
+                            <td class="rank">
+                                #${vessel.rank}
+                            </td>
+
+                            <td class="vessel-name">
+                                ${escapeHTML(vessel.name)}
+                            </td>
+
+                            <td class="flag">
+                                ${escapeHTML(vessel.flag)}
+                            </td>
+
+                            <td>
+                                ${vessel.distance.toFixed(2)} km
+                            </td>
+
+                            <td>
+                                ${vessel.timeGap.toFixed(2)} h
+                            </td>
+
+                            <td>
+                                ${vessel.trajectory.toFixed(1)}
+                            </td>
+
+                            <td>
+                                ${vessel.anomaly.toFixed(1)}
+                            </td>
+
+                            <td>
+                                ${vessel.environmental.toFixed(1)}
+                            </td>
+
+                            <td class="score">
+                                ${vessel.finalScore.toFixed(1)}%
+                            </td>
+
+                        </tr>
+                    `;
+
+                }
+            ).join("");
+
+    }
+
+
+    /* =========================================================
+       TOP VESSEL
+    ========================================================= */
+
+    function renderTopVessel(vessel) {
+
+        document.getElementById(
+            "top-vessel-name"
+        ).textContent =
+            vessel.name;
+
+
+        document.getElementById(
+            "top-vessel-id"
+        ).textContent =
+            `MMSI ${vessel.mmsi} | FLAG ${vessel.flag}`;
+
+
+        document.getElementById(
+            "top-vessel-score"
+        ).textContent =
+            `${vessel.finalScore.toFixed(2)}%`;
+
+
+        const metrics = [
+            [
+                "Proximity",
+                vessel.proximity
+            ],
+            [
+                "Temporal",
+                vessel.temporal
+            ],
+            [
+                "Trajectory",
+                vessel.trajectory
+            ],
+            [
+                "AIS Anomaly",
+                vessel.anomaly
+            ],
+            [
+                "Environmental",
+                vessel.environmental
+            ]
+        ];
+
+
+        document.getElementById(
+            "top-vessel-metrics"
+        ).innerHTML =
+            metrics.map(
+                metric => `
+
+                    <div class="metric">
+
+                        <div class="metric-head">
+
+                            <span>
+                                ${metric[0]}
+                            </span>
+
+                            <span>
+                                ${metric[1].toFixed(1)}
+                            </span>
+
+                        </div>
+
+                        <div class="metric-bar">
+
+                            <div
+                                class="metric-fill"
+                                style="
+                                    width:${Math.min(
+                                        100,
+                                        Math.max(
+                                            0,
+                                            metric[1]
+                                        )
+                                    )}%;
+                                "
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                `
+            ).join("");
+
+    }
+
+
+    /* =========================================================
+       VESSEL CARDS
+    ========================================================= */
+
+    function renderVesselCards(vessels) {
+
+        document.getElementById(
+            "vessel-grid"
+        ).innerHTML =
+            vessels.map(
+                vessel => {
+
+                    const top =
+                        vessel.rank === 1;
+
+
+                    return `
+
+                        <div
+                            class="vessel-card ${
+                                top ? "top" : ""
+                            }"
+                        >
+
+                            <div class="vessel-rank">
+                                RANK #${String(
+                                    vessel.rank
+                                ).padStart(2, "0")}
+                            </div>
+
+                            <div class="vessel-card-name">
+                                ${escapeHTML(
+                                    vessel.name
+                                )}
+                            </div>
+
+                            <div class="vessel-card-id">
+                                MMSI ${escapeHTML(
+                                    String(vessel.mmsi)
+                                )}
+                                &nbsp; | &nbsp;
+                                ${escapeHTML(
+                                    String(vessel.flag)
+                                )}
+                            </div>
+
+                            <div class="vessel-score">
+                                ${vessel.finalScore.toFixed(2)}%
+                            </div>
+
+                            <div class="score-label">
+                                FINAL EVIDENCE SCORE
+                            </div>
+
+                            ${metricHTML(
+                                "Proximity",
+                                vessel.proximity
+                            )}
+
+                            ${metricHTML(
+                                "Temporal",
+                                vessel.temporal
+                            )}
+
+                            ${metricHTML(
+                                "Trajectory",
+                                vessel.trajectory
+                            )}
+
+                            ${metricHTML(
+                                "AIS Anomaly",
+                                vessel.anomaly
+                            )}
+
+                            ${metricHTML(
+                                "Environmental",
+                                vessel.environmental
+                            )}
+
+                        </div>
+
+                    `;
+
+                }
+            ).join("");
+
+    }
+
+
+    function metricHTML(label, value) {
+
+        return `
+
+            <div class="metric">
+
+                <div class="metric-head">
+
+                    <span>
+                        ${label}
+                    </span>
+
+                    <span>
+                        ${number(value).toFixed(1)}
+                    </span>
+
+                </div>
+
+                <div class="metric-bar">
+
+                    <div
+                        class="metric-fill"
+                        style="
+                            width:${Math.min(
+                                100,
+                                Math.max(
+                                    0,
+                                    number(value)
+                                )
+                            )}%;
+                        "
+                    ></div>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    /* =========================================================
+       DRAW ALL AIS VESSELS
+    ========================================================= */
+
+    function drawAllVessels(vessels) {
+
+        if (!layers.tracks) {
+
+            layers.tracks =
+                L.layerGroup().addTo(map);
+
+        }
+
+
+        layers.tracks.clearLayers();
+
+
+        /*
+         * We need the detected spill position.
+         * Use the current dashboard coordinate when available.
+         */
+
+        let spillLat = 18.5;
+        let spillLon = 70.5;
+
+
+        const coordinates =
+            [];
+
+
+        vessels.forEach(
+            (vessel, index) => {
+
+                /*
+                 * Some APIs return vessel current
+                 * position directly.
+                 */
+
+                let lat =
+                    number(
+                        vessel.latitude,
+                        NaN
+                    );
+
+                let lon =
+                    number(
+                        vessel.longitude,
+                        NaN
+                    );
+
+
+                /*
+                 * If no direct current position exists,
+                 * use the first point in the track.
+                 */
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon)
+                ) {
+
+                    const track =
+                        normalizeTrack(
+                            vessel.track
+                        );
+
+
+                    if (track.length) {
+
+                        const last =
+                            track[
+                                track.length - 1
+                            ];
+
+                        lat =
+                            last[0];
+
+                        lon =
+                            last[1];
+
+                    }
+
+                }
+
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon)
+                ) {
+
+                    /*
+                     * We still keep the vessel in
+                     * attribution table, but cannot
+                     * place it without coordinates.
+                     */
+
+                    return;
+
+                }
+
+
+                coordinates.push([
+                    lat,
+                    lon
+                ]);
+
+
+                const isTop =
+                    vessel.rank === 1;
+
+
+                /*
+                 * Vessel marker.
+                 */
+
+                const marker =
+                    L.circleMarker(
+                        [lat, lon],
+                        {
+                            radius:
+                                isTop
+                                    ? 9
+                                    : 6,
+
+                            color:
+                                isTop
+                                    ? "#ff5964"
+                                    : "#42b8ff",
+
+                            weight:
+                                isTop
+                                    ? 3
+                                    : 2,
+
+                            fillColor:
+                                isTop
+                                    ? "#ff5964"
+                                    : "#42b8ff",
+
+                            fillOpacity: .92
+                        }
+                    );
+
+
+                marker.bindPopup(`
+                    <div
+                        style="
+                            min-width:220px;
+                            font-family:Arial;
+                        "
+                    >
+
+                        <div
+                            style="
+                                color:${
+                                    isTop
+                                        ? "#ff5964"
+                                        : "#42b8ff"
+                                };
+                                font-size:10px;
+                                letter-spacing:1px;
+                                margin-bottom:7px;
+                            "
+                        >
+                            ${
+                                isTop
+                                    ? "TOP SUSPECT"
+                                    : "AIS CANDIDATE"
+                            }
+                        </div>
+
+                        <strong
+                            style="
+                                font-size:16px;
+                                color:white;
+                            "
+                        >
+                            ${escapeHTML(
+                                vessel.name
+                            )}
+                        </strong>
+
+                        <hr
+                            style="
+                                border:0;
+                                border-top:
+                                1px solid #17435a;
+                            "
+                        >
+
+                        <b>MMSI:</b>
+                        ${escapeHTML(
+                            String(vessel.mmsi)
+                        )}
+                        <br>
+
+                        <b>Flag:</b>
+                        ${escapeHTML(
+                            String(vessel.flag)
+                        )}
+                        <br>
+
+                        <b>Position:</b>
+                        ${lat.toFixed(5)},
+                        ${lon.toFixed(5)}
+                        <br>
+
+                        <b>Distance:</b>
+                        ${vessel.distance.toFixed(2)} km
+                        <br>
+
+                        <b>Evidence:</b>
+                        <span
+                            style="color:#22e6a7;"
+                        >
+                            ${vessel.finalScore.toFixed(2)}%
+                        </span>
+
+                    </div>
+                `);
+
+
+                marker.addTo(
+                    layers.tracks
+                );
+
+
+                /*
+                 * Draw vessel trajectory.
+                 */
+
+                const track =
+                    normalizeTrack(
+                        vessel.track
+                    );
+
+
+                if (
+                    track.length >= 2
+                ) {
+
+                    L.polyline(
+                        track,
+                        {
+                            color:
+                                isTop
+                                    ? "#ff5964"
+                                    : "#18c8ff",
+
+                            weight:
+                                isTop
+                                    ? 3
+                                    : 1.8,
+
+                            opacity:
+                                isTop
+                                    ? .9
+                                    : .52,
+
+                            dashArray:
+                                isTop
+                                    ? "8 5"
+                                    : "5 7"
+                        }
+                    ).bindPopup(`
+                        <b>
+                            ${escapeHTML(
+                                vessel.name
+                            )}
+                        </b>
+                        <br>
+                        AIS reconstructed trajectory
+                    `).addTo(
+                        layers.tracks
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+         * Do NOT zoom only to vessels.
+         * The investigation map should preserve
+         * the spill/origin context.
+         */
+
+    }
+
+
+    /* =========================================================
+       TRACK NORMALIZATION
+    ========================================================= */
+
+    function normalizeTrack(track) {
+
+        if (!Array.isArray(track)) {
+            return [];
+        }
+
+
+        const result = [];
+
+
+        track.forEach(
+            point => {
+
+                let lat = null;
+                let lon = null;
+
+
+                if (Array.isArray(point)) {
+
+                    lat =
+                        number(
+                            point[0],
+                            NaN
+                        );
+
+                    lon =
+                        number(
+                            point[1],
+                            NaN
+                        );
+
+                }
+                else if (
+                    point &&
+                    typeof point === "object"
+                ) {
+
+                    lat =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "latitude",
+                                    "lat"
+                                ],
+                                NaN
+                            ),
+                            NaN
+                        );
+
+                    lon =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "longitude",
+                                    "lon"
+                                ],
+                                NaN
+                            ),
+                            NaN
+                        );
+
+                }
+
+
+                if (
+                    Number.isFinite(lat) &&
+                    Number.isFinite(lon)
+                ) {
+
+                    result.push([
+                        lat,
+                        lon
+                    ]);
+
+                }
+
+            }
+        );
+
+
+        return result;
+
+    }
+
+
+    /* =========================================================
+       FORWARD DRIFT
+    ========================================================= */
+
+    async function loadForwardDrift() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/forward-drift`,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `Forward drift HTTP ${response.status}`
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            renderForwardDrift(
+                data
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                "Forward drift error:",
+                error
+            );
+
+
+            document.getElementById(
+                "forecast-badge"
+            ).textContent =
+                "UNAVAILABLE";
+
+
+            document.getElementById(
+                "forecast-grid"
+            ).innerHTML = `
+
+                <div
+                    class="forecast-card"
+                    style="grid-column:1/-1;"
+                >
+
+                    <div
+                        class="forecast-time"
+                        style="color:#ff5964;"
+                    >
+                        FORWARD DRIFT DATA UNAVAILABLE
+                    </div>
+
+                    <div
+                        style="
+                            color:#628399;
+                            font-size:10px;
+                            margin-top:8px;
+                        "
+                    >
+                        Check /api/forward-drift
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+
+    }
+
+
+    function renderForwardDrift(data) {
+
+        if (
+            !data ||
+            data.available === false
+        ) {
+
+            throw new Error(
+                "Forward drift unavailable"
+            );
+
+        }
+
+
+        const points =
+            Array.isArray(
+                data.forecast_points
+            )
+                ? data.forecast_points
+                : [];
+
+
+        document.getElementById(
+            "forecast-badge"
+        ).textContent =
+            `${points.length} HORIZONS`;
+
+
+        document.getElementById(
+            "forecast-model"
+        ).textContent =
+            data.model ||
+            "Environmental drift";
+
+
+        const start =
+            data.start_position ||
+            (
+                points.length
+                    ? points[0]
+                    : {}
+            );
+
+
+        const finalPosition =
+            data.final_forecast_position ||
+            (
+                points.length
+                    ? points[points.length - 1]
+                    : {}
+            );
+
+
+        if (start) {
+
+            document.getElementById(
+                "forecast-start"
+            ).innerHTML =
+                `${fixed(
+                    firstDefined(
+                        start,
+                        ["latitude", "lat"],
+                        0
+                    ),
+                    4
+                )},
+                ${fixed(
+                    firstDefined(
+                        start,
+                        ["longitude", "lon"],
+                        0
+                    ),
+                    4
+                )}`;
+
+        }
+
+
+        if (finalPosition) {
+
+            document.getElementById(
+                "forecast-final"
+            ).innerHTML =
+                `${fixed(
+                    firstDefined(
+                        finalPosition,
+                        ["latitude", "lat"],
+                        0
+                    ),
+                    4
+                )},
+                ${fixed(
+                    firstDefined(
+                        finalPosition,
+                        ["longitude", "lon"],
+                        0
+                    ),
+                    4
+                )}`;
+
+        }
+
+
+        const finalPoint =
+            points.length
+                ? points[
+                    points.length - 1
+                ]
+                : null;
+
+
+        if (finalPoint) {
+
+            document.getElementById(
+                "forecast-uncertainty"
+            ).textContent =
+                `±${number(
+                    firstDefined(
+                        finalPoint,
+                        [
+                            "uncertainty_radius_km",
+                            "uncertainty"
+                        ],
+                        0
+                    )
+                ).toFixed(1)} km`;
+
+        }
+
+
+        const grid =
+            document.getElementById(
+                "forecast-grid"
+            );
+
+
+        if (!points.length) {
+
+            grid.innerHTML = `
+                <div
+                    class="forecast-card"
+                    style="grid-column:1/-1;"
+                >
+                    No forecast points available.
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        grid.innerHTML =
+            points.map(
+                point => {
+
+                    const hours =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "forecast_hours",
+                                    "hours"
+                                ],
+                                0
+                            )
+                        );
+
+
+                    const lat =
+                        firstDefined(
+                            point,
+                            [
+                                "latitude",
+                                "lat"
+                            ],
+                            0
+                        );
+
+
+                    const lon =
+                        firstDefined(
+                            point,
+                            [
+                                "longitude",
+                                "lon"
+                            ],
+                            0
+                        );
+
+
+                    const speed =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "transport_speed_ms",
+                                    "transport_speed"
+                                ],
+                                0
+                            )
+                        );
+
+
+                    const direction =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "transport_direction_deg",
+                                    "transport_direction"
+                                ],
+                                0
+                            )
+                        );
+
+
+                    const uncertainty =
+                        number(
+                            firstDefined(
+                                point,
+                                [
+                                    "uncertainty_radius_km",
+                                    "uncertainty"
+                                ],
+                                0
+                            )
+                        );
+
+
+                    return `
+
+                        <div class="forecast-card">
+
+                            <div class="forecast-time">
+                                T+${hours.toFixed(0)} HOURS
+                            </div>
+
+                            <div class="forecast-position">
+
+                                ${fixed(
+                                    lat,
+                                    5
+                                )}
+                                ,
+                                ${fixed(
+                                    lon,
+                                    5
+                                )}
+
+                            </div>
+
+                            <div class="forecast-meta">
+
+                                TRANSPORT:
+                                ${speed.toFixed(3)} m/s
+                                <br>
+
+                                DIRECTION:
+                                ${direction.toFixed(1)}°
+                                TOWARD
+                                <br>
+
+                                UNCERTAINTY:
+                                ±${uncertainty.toFixed(1)} km
+
+                            </div>
+
+                            <div class="forecast-status">
+                                ● FORECAST POINT
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            ).join("");
+
+
+        drawForwardDrift(
+            points
+        );
+
+    }
+
+
+    /* =========================================================
+       DRAW FORWARD DRIFT ON MAP
+    ========================================================= */
+
+    function drawForwardDrift(points) {
+
+        if (!layers.forecast) {
+
+            layers.forecast =
+                L.layerGroup().addTo(map);
+
+        }
+
+
+        layers.forecast.clearLayers();
+
+
+        const path = [];
+
+
+        points.forEach(
+            point => {
+
+                const lat =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "latitude",
+                                "lat"
+                            ],
+                            NaN
+                        ),
+                        NaN
+                    );
+
+
+                const lon =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "longitude",
+                                "lon"
+                            ],
+                            NaN
+                        ),
+                        NaN
+                    );
+
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon)
+                ) {
+                    return;
+                }
+
+
+                path.push([
+                    lat,
+                    lon
+                ]);
+
+            }
+        );
+
+
+        if (path.length < 1) {
+            return;
+        }
+
+
+        /*
+         * Orange forecast trajectory.
+         */
+
+        L.polyline(
+            path,
+            {
+                color: "#ffad42",
+                weight: 4,
+                opacity: .9,
+                dashArray: "9 7"
+            }
+        )
+        .bindPopup(
+            "Forward oil-spill drift forecast"
+        )
+        .addTo(
+            layers.forecast
+        );
+
+
+        /*
+         * Forecast points + uncertainty circles.
+         */
+
+        points.forEach(
+            (point, index) => {
+
+                const lat =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "latitude",
+                                "lat"
+                            ],
+                            NaN
+                        ),
+                        NaN
+                    );
+
+
+                const lon =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "longitude",
+                                "lon"
+                            ],
+                            NaN
+                        ),
+                        NaN
+                    );
+
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon)
+                ) {
+                    return;
+                }
+
+
+                const hours =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "forecast_hours",
+                                "hours"
+                            ],
+                            0
+                        )
+                    );
+
+
+                const uncertainty =
+                    number(
+                        firstDefined(
+                            point,
+                            [
+                                "uncertainty_radius_km",
+                                "uncertainty"
+                            ],
+                            0
+                        )
+                    );
+
+
+                /*
+                 * Forecast marker.
+                 */
+
+                L.circleMarker(
+                    [lat, lon],
+                    {
+                        radius:
+                            index === 0
+                                ? 8
+                                : 6,
+
+                        color: "#ffad42",
+
+                        weight: 2,
+
+                        fillColor:
+                            index === 0
+                                ? "#ffad42"
+                                : "#071925",
+
+                        fillOpacity:
+                            index === 0
+                                ? .9
+                                : 1
+                    }
+                )
+                .bindPopup(`
+                    <b
+                        style="color:#ffad42;"
+                    >
+                        FORWARD DRIFT T+${hours.toFixed(0)}h
+                    </b>
+
+                    <br><br>
+
+                    Latitude:
+                    ${fixed(lat, 6)}
+
+                    <br>
+
+                    Longitude:
+                    ${fixed(lon, 6)}
+
+                    <br>
+
+                    Uncertainty:
+                    ±${uncertainty.toFixed(1)} km
+                `)
+                .addTo(
+                    layers.forecast
+                );
+
+
+                /*
+                 * Uncertainty envelope.
+                 */
+
+                if (
+                    uncertainty > 0
+                ) {
+
+                    L.circle(
+                        [lat, lon],
+                        {
+                            radius:
+                                uncertainty * 1000,
+
+                            color: "#ffad42",
+
+                            weight: 1,
+
+                            dashArray: "4 7",
+
+                            opacity: .38,
+
+                            fillColor: "#ffad42",
+
+                            fillOpacity: .025
+                        }
+                    ).addTo(
+                        layers.forecast
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+         * Extend map bounds so the forecast
+         * path is visible.
+         */
+
+        const bounds =
+            L.latLngBounds(
+                path
+            );
+
+
+        if (bounds.isValid()) {
+
+            map.fitBounds(
+                bounds,
+                {
+                    padding: [80, 80],
+                    maxZoom: 8
+                }
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       SATELLITE IMAGE
+    ========================================================= */
+
+    function loadSatelliteImage() {
+
+        const image =
+            document.getElementById(
+                "satellite-image"
+            );
+
+
+        image.onload =
+            function () {
+
+                document.getElementById(
+                    "satellite-loading"
+                ).style.display =
+                    "none";
+
+                image.style.display =
+                    "block";
+
+            };
+
+
+        image.onerror =
+            function () {
+
+                showSatelliteError();
+
+            };
+
+
+        /*
+         * Cache-busting ensures that if you rerun
+         * prediction.py, the browser gets the new PNG.
+         */
+
+        image.src =
+            `${API}/satellite-image?t=${Date.now()}`;
+
+    }
+
+
+    function showSatelliteError() {
+
+        const image =
+            document.getElementById(
+                "satellite-image"
+            );
+
+
+        image.style.display =
+            "none";
+
+
+        document.getElementById(
+            "satellite-loading"
+        ).style.display =
+            "block";
+
+    }
+
+
+    /* =========================================================
+       TRACK API
+    ========================================================= */
+
+    async function loadTracks() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/tracks`,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `Tracks HTTP ${response.status}`
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            const vessels =
+                normalizeVessels(
+                    data
+                );
+
+
+            /*
+             * Only use tracks API if it actually
+             * returns useful vessels.
+             */
+
+            if (
+                vessels.length
+            ) {
+
+                drawAllVessels(
+                    vessels
+                );
+
+            }
+
+        }
+        catch (error) {
+
+            console.error(
+                "Tracks error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       ESCAPE HTML
+    ========================================================= */
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    /* =========================================================
+       NAVIGATION ACTIVE STATE
+    ========================================================= */
+
+    function setupNavigation() {
+
+        const links =
+            document.querySelectorAll(
+                ".nav a"
+            );
+
+
+        links.forEach(
+            link => {
+
+                link.addEventListener(
+                    "click",
+                    function () {
+
+                        links.forEach(
+                            item =>
+                                item.classList.remove(
+                                    "active"
+                                )
+                        );
+
+
+                        this.classList.add(
+                            "active"
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       START APPLICATION
+    ========================================================= */
+
+    async function startApp() {
+
+        initMap();
+
+        setupNavigation();
+
+        loadSatelliteImage();
+
+
+        /*
+         * Dashboard:
+         * - spill
+         * - origin
+         * - environment
+         * - AIS
+         */
+
+        await loadDashboard();
+
+
+        /*
+         * Forward drift is a separate
+         * confirmed working endpoint.
+         */
+
+        await loadForwardDrift();
+
+
+        /*
+         * Tracks endpoint.
+         */
+
+        await loadTracks();
+
+
+        /*
+         * Refresh dynamic information.
+         */
+
+        setInterval(
+            loadDashboard,
+            30000
+        );
+
+
+        setInterval(
+            loadForwardDrift,
+            30000
+        );
+
+
+        setInterval(
+            loadTracks,
+            30000
+        );
+
+    }
+
+
+    startApp();
+
+</script>
+
+</body>
+</html>

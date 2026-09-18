@@ -1,0 +1,63 @@
+venv/
+__pycache__/
+*.pyc
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Large datasets
+*.7z
+*.zip
+*.rar
+*.SAFE/
+data/training/
+data/raw/
+
+# Large model files
+*.pth
+*.pt
+*.onnx
+*.h5
+*.keras
+
+# Generated outputs
+outputs/*.tif
+outputs/*.png
+outputs/*.jpg
+
+# Processed satellite/environment data
+data/processed/
+data/environment/*.csv
+
+# Local AIS data
+data/ais/*.csv
+data/ais/*.csv.zst
+
+# IDE / OS
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Local Copernicus/data catalog files
+current.txt
+global.txt
+uo.txt
+
+# Environmental NetCDF data
+data/environment/*.nc
+
+# Sentinel-1 local files / metadata
+data/sentinel1/
+
+# Generated outputs
+outputs/
+
+# Generated reports
+reports/
+
+# Old/duplicate frontend files
+frontend/index_old.html
